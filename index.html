@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Snakes and Ladders (with Emojis!)</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: linear-gradient(to bottom right, #f0f8ff, #e0f7fa);
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(10, 50px);
+      grid-template-rows: repeat(10, 50px);
+      margin: 20px auto;
+      border: 2px solid #333;
+      box-shadow: 0 0 15px #aaa;
+    }
+    .cell {
+      border: 1px solid #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 11px;
+      position: relative;
+      background-color: #e0f7fa;
+      flex-direction: column;
+      padding: 2px;
+    }
+    .ladder {
+      background-color: #b3e5fc;
+    }
+    .snake {
+      background-color: #ffcdd2;
+    }
+    .emoji {
+      font-size: 14px;
+      margin-top: 2px;
+    }
+    .player, .ai {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      box-shadow: 0 0 8px 2px rgba(0,0,0,0.3);
+    }
+    .player {
+      background-color: gold;
+      bottom: 5px;
+      right: 5px;
+      box-shadow: 0 0 10px 2px gold;
+    }
+    .ai {
+      background-color: tomato;
+      top: 5px;
+      left: 5px;
+      box-shadow: 0 0 10px 2px tomato;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-top: 10px;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #388e3c;
+    }
+    #message {
+      margin-top: 15px;
+      font-size: 18px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎲 Snakes and Ladders 🎲</h1>
+  <div id="board"></div>
+  <button onclick="rollDice()">Roll Dice</button>
+  <p id="message"></p>
+
+  <script>
+    const board = document.getElementById('board');
+    const message = document.getElementById('message');
+
+    const snakes = {16: 6, 47: 26, 49: 11, 56: 53, 62: 19, 64: 60, 87: 24, 93: 73, 95: 75, 98: 78};
+    const ladders = {1: 38, 4: 14, 9: 31, 21: 42, 28: 84, 36: 44, 51: 67, 71: 91, 80: 100};
+
+    let playerPos = 1;
+    let aiPos = 1;
+    let isPlayerTurn = true;
+
+    function createBoard() {
+      let reverse = false;
+      for (let row = 9; row >= 0; row--) {
+        for (let col = 0; col < 10; col++) {
+          let index = reverse ? 9 - col : col;
+          const num = row * 10 + index + 1;
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          cell.id = `cell-${num}`;
+
+          const numberText = document.createElement('div');
+          numberText.innerText = num;
+
+          const emoji = document.createElement('div');
+          emoji.className = 'emoji';
+
+          if (ladders[num]) {
+            cell.classList.add('ladder');
+            emoji.innerText = '🪜';
+          } else if (snakes[num]) {
+            cell.classList.add('snake');
+            emoji.innerText = '🐍';
+          }
+
+          cell.appendChild(numberText);
+          if (emoji.innerText) {
+            cell.appendChild(emoji);
+          }
+          board.appendChild(cell);
+        }
+        reverse = !reverse;
+      }
+    }
+
+    function updatePositions() {
+      document.querySelectorAll('.player, .ai').forEach(el => el.remove());
+      const player = document.createElement('div');
+      player.className = 'player';
+      document.getElementById(`cell-${playerPos}`).appendChild(player);
+
+      const ai = document.createElement('div');
+      ai.className = 'ai';
+      document.getElementById(`cell-${aiPos}`).appendChild(ai);
+    }
+
+    function checkSnakeLadder(pos) {
+      if (snakes[pos]) {
+        alert(`Oops! Snake at ${pos}! 🐍`);
+        return snakes[pos];
+      }
+      if (ladders[pos]) {
+        alert(`Yay! Ladder at ${pos}! 🪜`);
+        return ladders[pos];
+      }
+      return pos;
+    }
+
+    function rollDice() {
+      if (!isPlayerTurn) return;
+      const roll = Math.floor(Math.random() * 6) + 1;
+      message.innerText = `You rolled a ${roll}`;
+      playerPos += roll;
+      if (playerPos > 100) playerPos = 100;
+      playerPos = checkSnakeLadder(playerPos);
+      updatePositions();
+
+      if (playerPos === 100) {
+        setTimeout(() => {
+          alert('🎉 You win!');
+          if (confirm('Play again?')) resetGame();
+        }, 200);
+        return;
+      }
+
+      isPlayerTurn = false;
+      setTimeout(aiTurn, 1000);
+    }
+
+    function aiTurn() {
+      let bestMove = 1;
+      let bestScore = -Infinity;
+      for (let i = 1; i <= 6; i++) {
+        let tempPos = aiPos + i;
+        if (tempPos > 100) tempPos = 100;
+        if (snakes[tempPos]) tempPos = snakes[tempPos];
+        if (ladders[tempPos]) tempPos = ladders[tempPos];
+        if (tempPos > bestScore) {
+          bestScore = tempPos;
+          bestMove = i;
+        }
+      }
+
+      aiPos += bestMove;
+      if (aiPos > 100) aiPos = 100;
+      aiPos = checkSnakeLadder(aiPos);
+      message.innerText += ` | AI rolled ${bestMove}`;
+      updatePositions();
+
+      if (aiPos === 100) {
+        setTimeout(() => {
+          alert('🤖 AI wins! Try again.');
+          if (confirm('Play again?')) resetGame();
+        }, 200);
+        return;
+      }
+
+      isPlayerTurn = true;
+    }
+
+    function resetGame() {
+      playerPos = 1;
+      aiPos = 1;
+      isPlayerTurn = true;
+      message.innerText = '';
+      updatePositions();
+    }
+
+    createBoard();
+    updatePositions();
+  </script>
+</body>
+</html>
